@@ -1,158 +1,228 @@
-# Kloud TV
+<div align="center">
 
-A lightweight, **APK-only** Android app that aggregates ISP FTP servers,
-movie portals, and Live TV streams into a single Netflix-style home screen.
+# 📺 KFLIX TV
 
-- **No backend** - no auth, no registration, no database.
-- **No API keys** - everything is static, offline-config-driven.
-- Portals are loaded on-device via `WebView`.
+**A modern IPTV & Media Portal aggregator for Android, Android TV, Web & Windows**
 
----
+[![Flutter](https://img.shields.io/badge/Flutter-3.32-02569B?logo=flutter)](https://flutter.dev)
+[![Android](https://img.shields.io/badge/Android-5.0%2B-3DDC84?logo=android)](https://android.com)
+[![Android TV](https://img.shields.io/badge/Android%20TV-✓-00BCD4?logo=androidtv)](https://android.com/tv)
+[![Web](https://img.shields.io/badge/Web-✓-FF6F00?logo=googlechrome)](https://flutter.dev/web)
+[![License](https://img.shields.io/badge/License-MIT-purple)](LICENSE)
 
-## Features
-
-- Material 3 UI with Dark mode (default), Light mode, and System theme.
-- Home screen with gradient header, category filters, "Recently Opened" and
-  "Featured Portals" rails, and a responsive 2-column portal grid.
-- Real-time search across portal names and categories.
-- Favorites, persisted locally with `shared_preferences`.
-- Best-effort online/offline status indicator per portal (async HTTP check).
-- Global "No internet connection" banner via `connectivity_plus`.
-- Full-screen WebView player with:
-  - JavaScript enabled, mixed HTTP content allowed.
-  - Landscape rotation for fullscreen HTML5 video.
-  - Pull-to-refresh, loading progress bar, WebView back-history navigation.
-  - Error fallback with **Retry** and **Open in Browser**.
-- Settings screen: theme toggle, clear WebView cache, clear favorites, about,
-  and app version (via `package_info_plus`).
+</div>
 
 ---
 
-## Project Structure
+## ✨ Overview
+
+KFLIX TV brings together **ISP FTP servers**, **Movie portals**, and **Live TV streams** into a single, Netflix-style home screen — with a dedicated **FIFA World Cup 2026** section that fetches live match data in real time.
+
+- 🚫 **No backend** — no auth, no registration, no database
+- 🚫 **No API keys** — portals are static config-driven
+- ✅ **Works offline** — cached data & fallback mode
+- ✅ **Runs locally** — everything on your device
+
+---
+
+## 📱 Platform Support
+
+| Platform | Status | Notes |
+|---|---|---|
+| 📱 Android Mobile | ✅ Full support | WebView embedded player |
+| 📺 Android TV / Google TV | ✅ Full support | D-pad navigation, TV launcher banner, NavigationRail |
+| 🌐 Web | ✅ Supported | Portals open in new browser tab |
+| 🪟 Windows | ✅ Supported | Portals open in default browser |
+| 🍎 iOS / macOS | ⚠️ Requires Mac + Xcode | Build with `flutter build ipa` |
+
+---
+
+## 🏆 Features
+
+### Home Screen
+- Auto-rotating **hero banner** for featured portals (5s interval, swipeable)
+- **Category filters** — All · Movies · Live TV · Favorites
+- **Recently Opened** horizontal rail
+- Responsive portal grid — 2 cols (mobile) → 3 (tablet) → 4 (TV)
+- Portals **sorted by status** — 🟢 Online first, 🔴 Offline last
+- Real-time online/offline status indicator per portal
+
+### FIFA World Cup 2026 🏆
+- **Live match data** fetched from ESPN public API (no key needed)
+- Tabs: Live · Upcoming · Completed · Highlights
+- Live match count badge on nav tab with red glow
+- Match detail with **6 stream servers** + status indicators
+- One-click server switching & auto-failover
+- Auto-refresh every 60 s during live matches
+- Pull-to-refresh on all tabs
+
+### Portal Player
+- Full-screen **WebView** player with JavaScript & mixed content
+- Landscape rotation for HTML5 fullscreen video
+- Pull-to-refresh, loading progress bar, back-history navigation
+- Error fallback with Retry & Open in Browser
+
+### Other
+- 🔍 Full-text search across all portals
+- ❤️ Favorites — persisted locally
+- 🌙 Dark / Light / System theme
+- 📶 Global offline banner
+- ⚙️ Settings — theme, cache, about
+
+---
+
+## 🗂️ Project Structure
 
 ```
 lib/
-├── main.dart                  # App entry point, providers, theming
+├── main.dart
 ├── models/
-│   └── portal.dart            # Portal model + enums
+│   ├── portal.dart              # Portal model + enums
+│   └── match.dart               # WorldCupMatch model
 ├── data/
-│   └── portals.dart            # Static list of all portals (edit me!)
+│   ├── portals.dart             # Static portal list (edit here to add portals)
+│   └── world_cup_data.dart      # WC stream servers + fallback match data
 ├── providers/
 │   ├── theme_provider.dart
 │   ├── favorites_provider.dart
-│   └── portal_provider.dart
+│   ├── portal_provider.dart     # Search, filter, status (sorted online-first)
+│   └── world_cup_provider.dart  # Live fetch, server selection, auto-refresh
 ├── services/
-│   ├── storage_service.dart        # SharedPreferences wrapper
-│   ├── connectivity_service.dart   # Device online/offline state
-│   └── portal_status_service.dart  # Per-portal reachability checks
+│   ├── storage_service.dart         # SharedPreferences wrapper
+│   ├── connectivity_service.dart    # Online/offline detection
+│   ├── portal_status_service.dart   # Per-portal HTTP reachability checks
+│   └── match_service.dart           # ESPN API — live WC match data
 ├── screens/
+│   ├── root_scaffold.dart           # Responsive nav (bar ↔ rail)
 │   ├── home_screen.dart
 │   ├── favorites_screen.dart
 │   ├── search_screen.dart
 │   ├── settings_screen.dart
-│   ├── webview_screen.dart
-│   └── root_scaffold.dart      # Bottom navigation shell
+│   ├── webview_screen.dart          # Platform-adaptive portal viewer
+│   ├── world_cup_screen.dart        # FIFA WC tabs
+│   └── match_detail_screen.dart     # Scoreboard + server picker
 ├── widgets/
+│   ├── hero_banner.dart             # Auto-rotating featured banner
 │   ├── portal_card.dart
+│   ├── match_card.dart
 │   ├── category_tabs.dart
 │   ├── status_indicator.dart
 │   └── offline_banner.dart
 └── utils/
     ├── app_theme.dart
-    └── app_router.dart          # go_router configuration
+    ├── app_router.dart
+    └── country_flags.dart           # Country name → emoji flag mapping
 ```
 
 ---
 
-## Adding / Editing Portals
+## ➕ Adding Portals
 
-All portals are defined as a static `const` list in
-[`lib/data/portals.dart`](lib/data/portals.dart). To add a portal:
+Edit [`lib/data/portals.dart`](lib/data/portals.dart) — no other changes needed:
 
 ```dart
 Portal(
-  name: 'My New Portal',
+  name: 'My Portal',
   url: 'http://example.com/',
-  category: PortalCategory.movies, // or PortalCategory.liveTv
-  isFeatured: false,                // true to show in "Featured Portals"
+  category: PortalCategory.movies,   // or PortalCategory.liveTv
+  isFeatured: true,                  // shows in hero banner
 ),
 ```
 
-No other code changes are required - the grid, search, favorites, and
-status checks all read from this list automatically.
-
 ---
 
-## Setup
+## 🚀 Getting Started
 
 ### Prerequisites
-
-- [Flutter SDK 3.x](https://docs.flutter.dev/get-started/install) (stable channel)
-- Android SDK with **API level 35** installed (via Android Studio SDK Manager)
-- A connected device or emulator running Android 5.0 (API 21) or higher
+- [Flutter SDK 3.22+](https://docs.flutter.dev/get-started/install) (stable)
+- Android SDK API 35 (via Android Studio)
+- Android device / emulator running Android 5.0+ (API 21+)
 
 ### Install dependencies
-
 ```bash
 flutter pub get
 ```
 
-### Run in debug mode
-
+### Run debug
 ```bash
+# Android mobile / TV
 flutter run
+
+# Web
+flutter run -d web-server --web-port 8080
+
+# Windows
+flutter run -d windows
 ```
 
 ---
 
-## Building the Release APK
+## 📦 Building
 
+### Android APK (Mobile + Android TV)
 ```bash
 flutter build apk --release
+# Output: build/app/outputs/flutter-apk/app-release.apk
 ```
 
-The output APK will be located at:
-
-```
-build/app/outputs/flutter-apk/app-release.apk
-```
-
-To build a smaller, per-architecture set of APKs:
-
+### Web
 ```bash
-flutter build apk --release --split-per-abi
+flutter build web --release
+# Output: build/web/   ← deploy to Netlify / Firebase / any static host
 ```
 
-> **Note:** The release build uses the debug signing config out of the box
-> so it can be built immediately for testing/sideloading. Before publishing,
-> create your own keystore and update `android/app/build.gradle`
-> (`signingConfigs`) accordingly.
+### Windows
+```bash
+flutter build windows --release
+# Output: build/windows/runner/Release/
+```
+
+### iOS (requires macOS + Xcode)
+```bash
+flutter create --platforms=ios .
+flutter build ipa --release
+```
 
 ---
 
-## Notes on Portals
+## 🛠️ Tech Stack
 
-- Most portals use **plain HTTP**. `usesCleartextTraffic="true"` is enabled
-  in `AndroidManifest.xml` and the WebView's mixed-content mode is set to
-  `alwaysAllow` so these load correctly.
-- Many portals reference **private/LAN IP addresses** (e.g. `172.16.x.x`,
-  `10.x.x.x`). These will only be reachable while connected to the
-  corresponding ISP's network (e.g. via their broadband connection or a VPN
-  that routes to that network). The online/offline indicator reflects this -
-  a portal showing "Offline" may simply be unreachable from your current
-  network.
+| Concern | Package |
+|---|---|
+| State management | `provider` |
+| Navigation | `go_router` |
+| WebView player | `webview_flutter` |
+| Persistence | `shared_preferences` |
+| Connectivity | `connectivity_plus` |
+| HTTP / API fetch | `http` |
+| Open in browser | `url_launcher` |
+| App version | `package_info_plus` |
 
 ---
 
-## Tech Stack
+## ⚽ FIFA World Cup 2026 Servers
 
-| Concern              | Package              |
-| --------------------- | -------------------- |
-| State management      | `provider`            |
-| Navigation             | `go_router`           |
-| WebView                | `webview_flutter` (+ Android/WKWebView platform packages) |
-| Local persistence      | `shared_preferences`  |
-| Connectivity           | `connectivity_plus`   |
-| App version info       | `package_info_plus`   |
-| Reachability checks    | `http`                |
-| "Open in Browser"      | `url_launcher`        |
+| # | URL |
+|---|---|
+| Server 1 | `http://172.19.17.28/` |
+| Server 2 | `http://172.16.60.2/` |
+| Server 3 | `http://172.16.200.205/` |
+| Server 4 | `http://10.99.99.99/` |
+| Server 5 | `http://moviemazic.xyz/live-tv/tsports.html` |
+| Server 6 | `http://172.20.21.22/live_tv.php?key=1` |
+
+> Most LAN IP servers are only reachable on the corresponding ISP's network.
+
+---
+
+## 📝 Notes
+
+- HTTP portals work because `usesCleartextTraffic="true"` is set in the manifest and WebView mixed-content mode is `alwaysAllow`
+- LAN IPs (`172.x.x.x`, `10.x.x.x`) are only reachable on their local ISP network
+- The 🔴 Offline indicator just means unreachable from your current network — not necessarily down
+
+---
+
+## 📄 License
+
+MIT © 2026 KFLIX TV
