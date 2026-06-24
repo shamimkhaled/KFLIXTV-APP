@@ -1,0 +1,49 @@
+name: kloud_tv
+description: "KFLIX TV - A modern IPTV & Media Portal aggregator for Android."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  provider: ^6.1.2
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # WebView portal loading (Android + iOS/macOS)
+  webview_flutter: ^4.10.0
+  webview_flutter_android: ^4.0.0
+  webview_flutter_wkwebview: ^3.17.0
+
+  # "Open in Browser" fallback
+  url_launcher: ^6.3.1
+
+  # Local persistence (favorites, theme, recents)
+  shared_preferences: ^2.3.3
+
+  # Network connectivity detection
+  connectivity_plus: ^6.1.0
+
+  # App version info
+  package_info_plus: ^8.1.2
+
+  # Lightweight reachability checks for portal cards
+  http: ^1.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

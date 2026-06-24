@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android TV / Google TV launcher banner — displayed at 320×180 dp.
+    Replace with a custom PNG for a polished logo.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background gradient (deep navy → teal, matching KFLIX TV brand) -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#0D1B4B"
+                android:centerColor="#1A3A8F"
+                android:endColor="#0D4A3A"
+                android:angle="0" />
+        </shape>
+    </item>
+    <!-- Gold accent bar on the left edge -->
+    <item android:width="8dp" android:gravity="left">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFD700" />
+        </shape>
+    </item>
+</layer-list>
