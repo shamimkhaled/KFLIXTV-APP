@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../providers/favorites_provider.dart';
 import '../providers/theme_provider.dart';
+import '../utils/app_theme.dart';
 
-/// App settings: theme selection, cache/favorites management, and about info.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -15,56 +16,202 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  PackageInfo? _packageInfo;
+  PackageInfo? _info;
 
   @override
   void initState() {
     super.initState();
-    _loadPackageInfo();
+    PackageInfo.fromPlatform().then((i) => setState(() => _info = i));
   }
 
-  Future<void> _loadPackageInfo() async {
-    final info = await PackageInfo.fromPlatform();
-    if (!mounted) return;
-    setState(() => _packageInfo = info);
-  }
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.watch<ThemeProvider>();
 
-  Future<void> _clearWebViewCache(BuildContext context) async {
-    final controller = WebViewController();
-    await controller.clearCache();
-    await controller.clearLocalStorage();
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('WebView cache cleared')),
-    );
-  }
-
-  Future<void> _clearFavorites(BuildContext context) async {
-    final favoritesProvider = context.read<FavoritesProvider>();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear all favorites?'),
-        content: const Text(
-          'This will remove every portal from your Favorites list. This '
-          'cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+    return Scaffold(
+      backgroundColor: KColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 90,
+            automaticallyImplyLeading: false,
+            backgroundColor: KColors.background,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: KColors.brandGradient,
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(children: [
+                      const Icon(Icons.tune_rounded,
+                          color: Colors.white, size: 24),
+                      const SizedBox(width: 10),
+                      Text('Settings',
+                          style: GoogleFonts.spaceGrotesk(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear'),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // ── Appearance ─────────────────────────────────────────
+                _SectionLabel('APPEARANCE'),
+                const SizedBox(height: 10),
+                _Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(15, 14, 15, 10),
+                        child: Text('Theme',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: KColors.textPrimary)),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+                        child: Row(
+                          children: [
+                            _ThemeChip(
+                                label: 'Dark',
+                                selected: theme.themeMode == ThemeMode.dark,
+                                onTap: () =>
+                                    theme.setThemeMode(ThemeMode.dark)),
+                            const SizedBox(width: 8),
+                            _ThemeChip(
+                                label: 'Light',
+                                selected: theme.themeMode == ThemeMode.light,
+                                onTap: () =>
+                                    theme.setThemeMode(ThemeMode.light)),
+                            const SizedBox(width: 8),
+                            _ThemeChip(
+                                label: 'System',
+                                selected:
+                                    theme.themeMode == ThemeMode.system,
+                                onTap: () =>
+                                    theme.setThemeMode(ThemeMode.system)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 22),
+
+                // ── Storage ────────────────────────────────────────────
+                _SectionLabel('STORAGE'),
+                const SizedBox(height: 10),
+                _Card(
+                  child: Column(
+                    children: [
+                      _SettingsTile(
+                        icon: Icons.cleaning_services_rounded,
+                        iconColor: KColors.secondary,
+                        title: 'Clear Cache',
+                        subtitle: 'WebView cache and local storage',
+                        trailing: const SizedBox.shrink(),
+                        onTap: () => _clearCache(context),
+                        divider: true,
+                      ),
+                      _SettingsTile(
+                        icon: Icons.delete_outline_rounded,
+                        iconColor: KColors.offline,
+                        title: 'Clear Favorites',
+                        subtitle: 'Removes all saved portals',
+                        trailing: const SizedBox.shrink(),
+                        onTap: () => _clearFavorites(context),
+                        divider: false,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 22),
+
+                // ── About ──────────────────────────────────────────────
+                _SectionLabel('ABOUT'),
+                const SizedBox(height: 10),
+                _Card(
+                  child: Column(
+                    children: [
+                      _SettingsTile(
+                        icon: Icons.info_outline_rounded,
+                        iconColor: KColors.primary,
+                        title: 'About KFLIX TV',
+                        subtitle: 'Description and credits',
+                        trailing: const Icon(Icons.chevron_right_rounded,
+                            color: KColors.navInactive, size: 20),
+                        onTap: () => _showAbout(context),
+                        divider: true,
+                      ),
+                      _SettingsTile(
+                        icon: Icons.tag_rounded,
+                        iconColor: KColors.textMuted,
+                        title: 'App Version',
+                        subtitle: _info == null
+                            ? 'Loading…'
+                            : '${_info!.version} (build ${_info!.buildNumber})',
+                        trailing: const SizedBox.shrink(),
+                        onTap: null,
+                        divider: false,
+                      ),
+                    ],
+                  ),
+                ),
+              ]),
+            ),
           ),
         ],
       ),
     );
+  }
 
-    if (confirmed == true) {
-      await favoritesProvider.clearFavorites();
-      if (!context.mounted) return;
+  Future<void> _clearCache(BuildContext context) async {
+    await WebViewCookieManager().clearCookies();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cache cleared')),
+      );
+    }
+  }
+
+  Future<void> _clearFavorites(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: KColors.surface,
+        title: const Text('Clear Favorites?',
+            style: TextStyle(color: KColors.textPrimary)),
+        content: const Text('This will remove all saved portals.',
+            style: TextStyle(color: KColors.textSecondary)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(
+                  backgroundColor: KColors.offline),
+              child: const Text('Clear')),
+        ],
+      ),
+    );
+    if (confirm == true && context.mounted) {
+      context.read<FavoritesProvider>().clearFavorites();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Favorites cleared')),
       );
@@ -72,105 +219,161 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showAbout(BuildContext context) {
-    final version = _packageInfo?.version ?? '-';
     showAboutDialog(
       context: context,
       applicationName: 'KFLIX TV',
-      applicationVersion: 'Version $version',
-      applicationIcon: const Icon(Icons.live_tv_rounded, size: 40),
+      applicationVersion: _info?.version ?? '',
+      applicationIcon: const Icon(Icons.live_tv_rounded,
+          size: 40, color: KColors.primary),
       children: const [
         SizedBox(height: 12),
         Text(
           'KFLIX TV is a lightweight portal launcher that brings together '
           'ISP FTP servers, movie portals, and Live TV streams into a '
           'single, Netflix-style home screen.\n\n'
-          'No backend, no accounts, no tracking - everything runs locally '
-          'on your device.',
+          'No backend, no accounts, no tracking — everything runs locally.',
+          style: TextStyle(color: KColors.textSecondary),
         ),
-        SizedBox(height: 12),
-        Text('Built with Flutter.'),
       ],
     );
   }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
+    return Text(label,
+        style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: KColors.textMuted,
+            letterSpacing: 0.5));
+  }
+}
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          const _SectionHeader('Appearance'),
-          RadioListTile<ThemeMode>(
-            title: const Text('System default'),
-            value: ThemeMode.system,
-            groupValue: themeProvider.themeMode,
-            onChanged: (mode) => themeProvider.setThemeMode(mode!),
+class _Card extends StatelessWidget {
+  const _Card({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: KColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: KColors.borderSubtle),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _ThemeChip extends StatelessWidget {
+  const _ThemeChip(
+      {required this.label, required this.selected, required this.onTap});
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(11),
+            gradient: selected
+                ? const LinearGradient(colors: KColors.brandGradient)
+                : null,
+            color: selected ? null : KColors.surfaceHighest,
           ),
-          RadioListTile<ThemeMode>(
-            title: const Text('Light'),
-            value: ThemeMode.light,
-            groupValue: themeProvider.themeMode,
-            onChanged: (mode) => themeProvider.setThemeMode(mode!),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : KColors.textMuted,
+            ),
           ),
-          RadioListTile<ThemeMode>(
-            title: const Text('Dark'),
-            value: ThemeMode.dark,
-            groupValue: themeProvider.themeMode,
-            onChanged: (mode) => themeProvider.setThemeMode(mode!),
-          ),
-          const Divider(),
-          const _SectionHeader('Storage'),
-          ListTile(
-            leading: const Icon(Icons.cleaning_services_rounded),
-            title: const Text('Clear Cache'),
-            subtitle: const Text('Clears WebView cache and local storage'),
-            onTap: () => _clearWebViewCache(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete_outline_rounded),
-            title: const Text('Clear Favorites'),
-            subtitle: const Text('Removes all saved favorite portals'),
-            onTap: () => _clearFavorites(context),
-          ),
-          const Divider(),
-          const _SectionHeader('About'),
-          ListTile(
-            leading: const Icon(Icons.info_outline_rounded),
-            title: const Text('About KFLIX TV'),
-            subtitle: const Text('Description and credits'),
-            onTap: () => _showAbout(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.tag_rounded),
-            title: const Text('App Version'),
-            subtitle: Text(_packageInfo == null
-                ? 'Loading...'
-                : '${_packageInfo!.version} (build ${_packageInfo!.buildNumber})'),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title);
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+    required this.onTap,
+    required this.divider,
+  });
 
+  final IconData icon;
+  final Color iconColor;
   final String title;
+  final String subtitle;
+  final Widget trailing;
+  final VoidCallback? onTap;
+  final bool divider;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 19),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: KColors.textPrimary)),
+                      Text(subtitle,
+                          style: const TextStyle(
+                              fontSize: 11, color: KColors.textMuted)),
+                    ],
+                  ),
+                ),
+                trailing,
+              ],
             ),
-      ),
+          ),
+        ),
+        if (divider)
+          const Divider(height: 1, color: KColors.borderSubtle,
+              indent: 15, endIndent: 15),
+      ],
     );
   }
 }

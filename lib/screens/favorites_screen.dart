@@ -1,54 +1,116 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../data/portals.dart';
-import '../models/portal.dart';
 import '../providers/favorites_provider.dart';
+import '../utils/app_theme.dart';
 import '../widgets/portal_card.dart';
 
-/// Grid of all portals the user has favorited.
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final favoriteUrls = context.watch<FavoritesProvider>().favoriteUrls;
-    final favoritePortals = kPortals
+    final portals = kPortals
         .where((p) => favoriteUrls.contains(p.url))
         .toList(growable: false);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Favorites')),
-      body: favoritePortals.isEmpty
-          ? const _NoFavorites()
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.78,
+      backgroundColor: KColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 90,
+            automaticallyImplyLeading: false,
+            backgroundColor: KColors.background,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: KColors.brandGradient,
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.favorite_rounded,
+                            color: Colors.white, size: 24),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Favorites',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (portals.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 11, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${portals.length} saved',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              itemCount: favoritePortals.length,
-              itemBuilder: (context, index) {
-                final portal = favoritePortals[index];
-                return PortalCard(
-                  portal: portal,
-                  onOpen: () => _open(context, portal),
-                );
-              },
             ),
+          ),
+          if (portals.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: _Empty(),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 11,
+                  crossAxisSpacing: 11,
+                  childAspectRatio: 0.75,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) {
+                    final p = portals[i];
+                    return PortalCard(
+                        portal: p,
+                        onOpen: () => context.push('/player', extra: p));
+                  },
+                  childCount: portals.length,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
-  }
-
-  void _open(BuildContext context, Portal portal) {
-    context.push('/player', extra: portal);
   }
 }
 
-class _NoFavorites extends StatelessWidget {
-  const _NoFavorites();
+class _Empty extends StatelessWidget {
+  const _Empty();
 
   @override
   Widget build(BuildContext context) {
@@ -58,16 +120,13 @@ class _NoFavorites extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.favorite_border_rounded,
-              size: 56,
-              color: Theme.of(context).colorScheme.outline,
-            ),
+            Icon(Icons.favorite_border_rounded,
+                size: 56, color: KColors.textMuted.withValues(alpha: 0.5)),
             const SizedBox(height: 12),
-            Text(
-              'No favorites yet.\nTap the heart icon on any portal to save it here.',
+            const Text(
+              'No favorites yet.\nTap ♡ on any portal to save it here.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: TextStyle(color: KColors.textMuted),
             ),
           ],
         ),

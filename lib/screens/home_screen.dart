@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../data/portals.dart';
@@ -15,7 +16,7 @@ import '../widgets/portal_card.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  void _openPortal(BuildContext context, Portal portal) =>
+  void _open(BuildContext context, Portal portal) =>
       context.push('/player', extra: portal);
 
   @override
@@ -23,7 +24,8 @@ class HomeScreen extends StatelessWidget {
     final portalProvider = context.watch<PortalProvider>();
     final favorites = context.watch<FavoritesProvider>();
     final filtered = portalProvider.filteredPortals(favorites.favoriteUrls);
-    final screenW = MediaQuery.sizeOf(context).width;
+    final width = MediaQuery.sizeOf(context).width;
+    final cols = width > 900 ? 4 : 2;
 
     final showExtras = portalProvider.filter == PortalFilter.all &&
         portalProvider.searchQuery.isEmpty;
@@ -33,101 +35,82 @@ class HomeScreen extends StatelessWidget {
         .whereType<Portal>()
         .toList(growable: false);
 
-    // Responsive grid columns
-    final crossAxisCount = screenW > 900
-        ? 4
-        : screenW > 600
-            ? 3
-            : 2;
-
     return Scaffold(
+      backgroundColor: KColors.background,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
           slivers: [
-            // ── Offline banner ───────────────────────────────────────
             const SliverToBoxAdapter(child: OfflineBanner()),
-
-            // ── App bar ──────────────────────────────────────────────
             _GradientHeader(onSearchTap: () => context.push('/search')),
 
-            // ── Hero banner (featured portals) ───────────────────────
             if (showExtras && portalProvider.featuredPortals.isNotEmpty)
               SliverToBoxAdapter(
                 child: HeroBanner(
                   portals: portalProvider.featuredPortals,
-                  onOpen: (p) => _openPortal(context, p),
+                  onOpen: (p) => _open(context, p),
                 ),
               ),
 
-            // ── Category filter tabs ─────────────────────────────────
             const SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
+                padding: EdgeInsets.symmetric(vertical: 10),
                 child: CategoryTabs(),
               ),
             ),
 
-            // ── Recently opened rail ─────────────────────────────────
             if (showExtras && recentPortals.isNotEmpty)
               SliverToBoxAdapter(
                 child: _Rail(
                   title: 'Recently Opened',
                   portals: recentPortals,
-                  onOpen: (p) => _openPortal(context, p),
+                  onOpen: (p) => _open(context, p),
                 ),
               ),
 
-            // ── Section title ────────────────────────────────────────
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
               sliver: SliverToBoxAdapter(
                 child: Row(
                   children: [
                     Text(
                       _sectionTitle(portalProvider.filter),
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: KColors.textPrimary,
+                      ),
                     ),
                     const Spacer(),
                     Text(
                       '${filtered.length} portals',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
-                          ),
+                      style: const TextStyle(
+                          fontSize: 12, color: KColors.textMuted),
                     ),
                   ],
                 ),
               ),
             ),
 
-            // ── Portal grid ──────────────────────────────────────────
             if (filtered.isEmpty)
-              SliverFillRemaining(
+              const SliverFillRemaining(
                 hasScrollBody: false,
-                child: _EmptyState(filter: portalProvider.filter),
+                child: _EmptyState(),
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 100),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
                 sliver: SliverGrid(
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
+                    crossAxisCount: cols,
+                    mainAxisSpacing: 11,
+                    crossAxisSpacing: 11,
                     childAspectRatio: 0.75,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final portal = filtered[index];
-                      return PortalCard(
-                        portal: portal,
-                        onOpen: () => _openPortal(context, portal),
-                      );
+                    (context, i) {
+                      final p = filtered[i];
+                      return PortalCard(portal: p, onOpen: () => _open(context, p));
                     },
                     childCount: filtered.length,
                   ),
@@ -146,7 +129,7 @@ class HomeScreen extends StatelessWidget {
     return null;
   }
 
-  String _sectionTitle(PortalFilter filter) => switch (filter) {
+  String _sectionTitle(PortalFilter f) => switch (f) {
         PortalFilter.all => 'All Portals',
         PortalFilter.movies => 'Movies',
         PortalFilter.liveTv => 'Live TV',
@@ -154,7 +137,7 @@ class HomeScreen extends StatelessWidget {
       };
 }
 
-// ─── Gradient SliverAppBar ────────────────────────────────────────────────────
+// ─── Gradient header ──────────────────────────────────────────────────────────
 
 class _GradientHeader extends StatelessWidget {
   const _GradientHeader({required this.onSearchTap});
@@ -165,19 +148,20 @@ class _GradientHeader extends StatelessWidget {
     return SliverAppBar(
       pinned: true,
       stretch: true,
-      expandedHeight: 90,
+      expandedHeight: 88,
       automaticallyImplyLeading: false,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: AppColors.brandGradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      backgroundColor: KColors.background,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: KColors.brandGradient,
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SafeArea(
             child: Row(
               children: [
                 Container(
@@ -188,16 +172,16 @@ class _GradientHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.live_tv_rounded,
-                      color: Colors.white, size: 22),
+                      color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'KFLIX TV',
-                    style: TextStyle(
+                    style: GoogleFonts.spaceGrotesk(
                       color: Colors.white,
                       fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
                     ),
                   ),
@@ -205,7 +189,6 @@ class _GradientHeader extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.search_rounded, color: Colors.white),
                   onPressed: onSearchTap,
-                  tooltip: 'Search',
                 ),
               ],
             ),
@@ -219,46 +202,36 @@ class _GradientHeader extends StatelessWidget {
 // ─── Horizontal rail ──────────────────────────────────────────────────────────
 
 class _Rail extends StatelessWidget {
-  const _Rail({
-    required this.title,
-    required this.portals,
-    required this.onOpen,
-  });
-
+  const _Rail({required this.title, required this.portals, required this.onOpen});
   final String title;
   final List<Portal> portals;
   final void Function(Portal) onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final itemH = MediaQuery.sizeOf(context).height * 0.24;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-          child: Text(
-            title,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Text(title,
+              style: GoogleFonts.spaceGrotesk(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: KColors.textPrimary)),
         ),
         SizedBox(
-          height: itemH.clamp(150, 220),
+          height: 200,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: portals.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, __) => const SizedBox(width: 11),
             itemBuilder: (context, i) {
-              final portal = portals[i];
+              final p = portals[i];
               return SizedBox(
-                width: 150,
-                child:
-                    PortalCard(portal: portal, onOpen: () => onOpen(portal)),
+                width: 148,
+                child: PortalCard(portal: p, onOpen: () => onOpen(p)),
               );
             },
           ),
@@ -271,33 +244,22 @@ class _Rail extends StatelessWidget {
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.filter});
-  final PortalFilter filter;
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
-    final isFav = filter == PortalFilter.favorites;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isFav
-                  ? Icons.favorite_border_rounded
-                  : Icons.search_off_rounded,
-              size: 56,
-              color: Theme.of(context).colorScheme.outline,
-            ),
+            Icon(Icons.search_off_rounded,
+                size: 56, color: KColors.textMuted.withValues(alpha: 0.5)),
             const SizedBox(height: 12),
-            Text(
-              isFav
-                  ? 'No favorites yet.\nTap ♡ on any portal to save it here.'
-                  : 'No portals found.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            const Text('No portals found.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: KColors.textMuted)),
           ],
         ),
       ),

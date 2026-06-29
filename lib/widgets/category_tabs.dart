@@ -2,45 +2,58 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/portal_provider.dart';
+import '../utils/app_theme.dart';
 
-/// Horizontal row of filter chips: All, Movies, Live TV, Favorites.
 class CategoryTabs extends StatelessWidget {
   const CategoryTabs({super.key});
 
   static const _options = [
-    (PortalFilter.all, 'All', Icons.apps_rounded),
-    (PortalFilter.movies, 'Movies', Icons.movie_rounded),
-    (PortalFilter.liveTv, 'Live TV', Icons.live_tv_rounded),
-    (PortalFilter.favorites, 'Favorites', Icons.favorite_rounded),
+    (PortalFilter.all, 'All'),
+    (PortalFilter.movies, 'Movies'),
+    (PortalFilter.liveTv, 'Live TV'),
+    (PortalFilter.favorites, 'Favorites'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final activeFilter = context.watch<PortalProvider>().filter;
+    final active = context.watch<PortalProvider>().filter;
 
     return SizedBox(
-      height: 44,
+      height: 42,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: _options.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final (filter, label, icon) = _options[index];
-          final selected = filter == activeFilter;
+        itemBuilder: (context, i) {
+          final (filter, label) = _options[i];
+          final selected = filter == active;
 
-          return ChoiceChip(
-            selected: selected,
-            avatar: Icon(
-              icon,
-              size: 18,
-              color: selected
-                  ? Theme.of(context).colorScheme.onPrimary
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
+          return GestureDetector(
+            onTap: () => context.read<PortalProvider>().setFilter(filter),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: selected
+                    ? const LinearGradient(
+                        colors: KColors.brandGradient,
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      )
+                    : null,
+                color: selected ? null : KColors.surfaceVariant,
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  color: selected ? Colors.white : KColors.textSecondary,
+                ),
+              ),
             ),
-            label: Text(label),
-            onSelected: (_) =>
-                context.read<PortalProvider>().setFilter(filter),
           );
         },
       ),
